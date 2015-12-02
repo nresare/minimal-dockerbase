@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -e -x
+
+output=$(mktemp -d)
+
+sudo debootstrap --variant=minbase --arch=amd64 trusty $output http://se.archive.ubuntu.com/ubuntu
+sudo sh -c "echo 'deb http://se.archive.ubuntu.com/ubuntu/ trusty-updates main' >> $output/etc/apt/sources.list"
+sudo sh -c "echo 'deb http://security.ubuntu.com/ubuntu/ trusty-security main' >> $output/etc/apt/sources.list"
+sudo chroot $output sh -c 'apt-get update && apt-get -y upgrade'
+
+# remove some stuff
+sudo chroot $output dpkg -P locales
+sudo chroot $output rm -rf /var/cache/apt
+sudo chroot $output rm -rf /usr/share/locale/*
+
+old_pwd=$(pwd)
+cd $output
+sudo tar cfJ $old_pwd/rootfs-$(date --iso).tar.zx *
+cd ..
+sudo rm -rf $output
